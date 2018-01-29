@@ -81,6 +81,14 @@ shinyServer(function(input, output) {
     
   })
   
+  filtered_oil2a = reactive({
+    if(nrow(filtered_oil2()) > 0){
+      filtered_oil2()
+    }else{
+      dummy
+    }
+  })
+  
   filtered_oil1 = reactive({
     oil1 %>%
       filter(., Borough %in% boro_select()) %>%
@@ -89,8 +97,16 @@ shinyServer(function(input, output) {
     
   })
   
+  filtered_oil1a = reactive({
+    if(nrow(filtered_oil1()) > 0){
+      filtered_oil1()
+    }else{
+      dummy
+    }
+  })
+  
   consumption = reactive ({
-    filtered_oil1() %>%
+    filtered_oil1a() %>%
     group_by(., Borough) %>%
     summarize(., Fuel.Consumption = sum(Average.Consumption), Gas.Sales = sum(Dollars.Gas)) %>%
     mutate(., Fuel.Mils = Fuel.Consumption/1000000) 
@@ -98,7 +114,7 @@ shinyServer(function(input, output) {
   })
   
   consumption2 = reactive ({
-    filtered_oil1() %>%
+    filtered_oil1a() %>%
       group_by(., Council.District) %>%
       summarize(., Fuel.Consumption = sum(Average.Consumption), Gas.Sales = sum(Dollars.Gas)) %>%
       mutate(., Fuel.Thou = Fuel.Consumption/1000) 
@@ -122,7 +138,7 @@ shinyServer(function(input, output) {
   # putting in leaflet proxy to control map (faster?)
   
   observe({
-    req(filtered_oil2()) #req func to require non empty df
+    #req(filtered_oil2a()) #req func to require non empty df
     df2 = sp::merge(counties, consumption(), by.x='boro_name', by.y='Borough')
     df3 = sp::merge(district2, consumption2(), by.x='CounDist', by.y='Council.District')
 
@@ -133,7 +149,7 @@ shinyServer(function(input, output) {
     dpal = colorBin('YlOrRd', domain = consumption2()$Fuel.Thou, bins = bins2)
     Bpal = colorFactor(topo.colors(23), oil1$Building.Type)
     
-    leafletProxy('map', data = filtered_oil2()) %>%
+    leafletProxy('map', data = filtered_oil2a()) %>%
       clearShapes() %>%
       addPolygons(data = df2[df2$boro_name %in% boro_select(),],
                   fillColor = ~pal(Fuel.Mils),
@@ -234,7 +250,7 @@ shinyServer(function(input, output) {
   
   output$Btype = renderGvis({
     
-    buildingT = filtered_oil1()%>%
+    buildingT = filtered_oil1a()%>%
       group_by(., Building.Type)%>%
       summarise(., BuildingType = n())
     
@@ -242,7 +258,7 @@ shinyServer(function(input, output) {
   })#END Gvisrender
   
   output$time = renderGvis({
-    time = filtered_oil1() %>%
+    time = filtered_oil1a() %>%
       group_by(., Borough, Retirement) %>%
       summarise(., Fuel.Consumption = sum(Average.Consumption))
     

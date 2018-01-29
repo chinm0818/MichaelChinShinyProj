@@ -48,7 +48,7 @@ shinyUI(dashboardPage(
       ),#End tabItem(map)
       tabItem(tabName = 'data',
               htmlOutput('count_data'),
-              htmlOutput('time')
+              plotOutput('time')
       )#End tabItem(data)
     )#End tabItems
   )#END DB body
