@@ -257,12 +257,12 @@ shinyServer(function(input, output) {
     gvisPieChart(buildingT)
   })#END Gvisrender
   
-  output$time = renderGvis({
+  output$time = renderPlot({
     time = filtered_oil1a() %>%
       group_by(., Borough, Retirement) %>%
       summarise(., Fuel.Consumption = sum(Average.Consumption))
     
-    gvisLineChart(time)
+    ggplot(time, aes(x= Retirement, y = Fuel.Consumption)) + geom_bar(stat = 'identity', aes(fill = Borough))
   })
   
 })#END Shiny server
