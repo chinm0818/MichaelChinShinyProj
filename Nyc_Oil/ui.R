@@ -42,18 +42,25 @@ shinyUI(dashboardPage(
     tabItems(
       tabItem(tabName = 'map',
               leafletOutput('map', width = '100%', height = '900'),
-              absolutePanel(top = 100, right = 100, width = 400, h1(textOutput('take_away'))),
-              absolutePanel(bottom = 40, right = 40, htmlOutput('Btype'))
-              
+              absolutePanel(top = 100, right = 100, width = 600,
+                            h2(htmlOutput('take_away'),
+                            tags$head(tags$style('#take_away{color: white;'))
+                            )
+                            )#END absolute panel
       ),#End tabItem(map)
+      
       tabItem(tabName = 'data',
               htmlOutput('count_data'),
-              plotOutput('time')
+              fluidRow(plotOutput('time', width = '800px'), htmlOutput('Btype'))
       )#End tabItem(data)
     )#End tabItems
   )#END DB body
 )#END Dashboard
 )#END ShinyUI
+
+
+
+## left over code from trying non-dashboard ui
 
 # fluidPage(
 #   leafletOutput('map', width = '2000', height = '1000'),

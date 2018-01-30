@@ -1,11 +1,23 @@
 #
 # Shiny app for NYC_oil project (serverside)
-# application by clicking 'Run App' above.
-#
-# Find out more about building applications with Shiny here:
-# 
-#    http://shiny.rstudio.com/
-#
+# Problem statement (Business Case):
+# Goal of App:
+
+##What questions do we want to answer with this data set?
+#1. Where are these boilers located
+#2. When where they installed
+#3. How much fuel do they consume?
+#3a. How much money worth of fuel is consumed?
+#4. When are they due to being replaced?
+#5. Who is reponsible for supplying gas if and when these boilers are replaced?
+
+## Main Thesis: NYC has dates set to phase out thousands of boilers in nyc between 2010 and 2040.
+## Each burns hundreds of thousands of oil worth of btus a year. 
+## knowing when and where these units are being phased out would be useful in planning efforts to switch to gas units 
+## no 4 and no 6 are dirty burining oils. no 6 was to be phased out 2015
+## all burners are mandated to be on no 2 or nat gas by 2030
+## source https://www.nytimes.com/2014/04/07/nyregion/cost-among-hurdles-slowing-new-yorks-plan-to-phase-out-dirty-heating-oil.html
+
 
 library(shiny)
 library(dplyr)
@@ -109,7 +121,8 @@ shinyServer(function(input, output) {
     filtered_oil1a() %>%
     group_by(., Borough) %>%
     summarize(., Fuel.Consumption = sum(Average.Consumption), Gas.Sales = sum(Dollars.Gas)) %>%
-    mutate(., Fuel.Mils = Fuel.Consumption/1000000) 
+    mutate(., Fuel.Mils = Fuel.Consumption/1000000)
+    
     
   })
   
@@ -164,7 +177,7 @@ shinyServer(function(input, output) {
                     fillOpacity = 0.7,
                     bringToFront = TRUE),
                   label = ~sprintf(
-                    "<strong>%s</strong><br/>%g MMBTU of fuel",
+                    "<strong>%s</strong><br/>%2.2g million MMBTU of fuel",
                     boro_name, Fuel.Mils
                   ) %>% lapply(htmltools::HTML), #label modified from example. pass data along W/~ to make sure it updates correctly
                   labelOptions = labelOptions(
@@ -176,7 +189,7 @@ shinyServer(function(input, output) {
                  group = 'points',
                  highlight = highlightOptions(),
                  label = ~sprintf(
-                   "%s<br>%s<br/>%0.3g MMBTU of fuel",
+                   "%s<br>%s<br/>%g MMBTU of fuel",
                    Facility.Address, Building.Type, Average.Consumption) %>% lapply(htmltools::HTML)) %>%
       addPolygons(data = df3[df3$CounDist %in% district_select(),], 
                   fillColor = ~dpal(Fuel.Thou),
@@ -191,7 +204,7 @@ shinyServer(function(input, output) {
                     fillOpacity = 0.7,
                     bringToFront = TRUE),
                   label = ~sprintf(
-                    "<strong>%s</strong><br/>%g Thousand BTU's of fuel",
+                    "<strong>%s</strong><br/>%4.1g Thousand MMBTU's of fuel",
                     CounDist, Fuel.Thou
                   ) %>% lapply(htmltools::HTML), #label modified from example. pass data along W/~ to make sure it updates correctly
                   labelOptions = labelOptions(
@@ -200,7 +213,7 @@ shinyServer(function(input, output) {
                     direction = 'auto'),
                   group = 'districts') %>%
       setView(lat = map_location()[1], lng = map_location()[2], zoom = map_location()[3])
-      #addPolylines(data = district2) #leave this out for now. #later add option to toggle districts off and on
+      
   })
   
   # #plotting in ggplot keep incase leaflet gets funky again
@@ -242,19 +255,38 @@ shinyServer(function(input, output) {
   })#END  chart render
   
 
-  output$take_away = renderText({
+  output$take_away = renderUI({
     
-    paste("Between the years", input$year[1],"and", input$year[2],"$", consumption()[dim(consumption())[1],dim(consumption())[2]], "of Natural gas can be sold")
-  })#END  chart render
+    
+    HTML(sprintf("Between %d and %d, %g oil furnaces are scheduled to be decomissioned.<br><br>
+            
+            replacing these units with natural gas furnaces results in $ %3.2f a year in sales for a natural gas provider", 
+            input$year[1], input$year[2], nrow(filtered_oil1a()), sum(consumption()$Fuel.Consumption), sum(consumption()$Gas.Sales/1000000)))
+  
+    
+    })#END  chart render
   
   
   output$Btype = renderGvis({
     
     buildingT = filtered_oil1a()%>%
       group_by(., Building.Type)%>%
-      summarise(., BuildingType = n())
+      summarise(., Building.Count = n(), Fuel.Consumption = sum(Average.Consumption), Area = sum(Total.area.of.buildings.on.lot))
     
-    gvisPieChart(buildingT)
+    gvisBubbleChart(buildingT, idvar = "Building.Type",
+                    xvar = "Building.Count", yvar = "Fuel.Consumption",
+                    colorvar = "Building.Type", sizevar = "Area",
+                    options = list(
+                      width = 800,
+                      height = 500,
+                      vAxis = "{title: 'Fuel.Consumption MMBTU'}",
+                      hAxis = "{title: 'Count of Building Type'}",
+                      title = "Fuel Consumption vs. Building Type"
+                    ))
+    
+    #ggplot(buildingT, aes(x = BuildingType, y = Fuel.Consumption)) + geom_point()
+    
+    # ggplot(filtered_oil1a(), aes(x = Building.Type, y = Average.Consumption)) + geom_boxplot()
   })#END Gvisrender
   
   output$time = renderPlot({
@@ -262,7 +294,12 @@ shinyServer(function(input, output) {
       group_by(., Borough, Retirement) %>%
       summarise(., Fuel.Consumption = sum(Average.Consumption))
     
-    ggplot(time, aes(x= Retirement, y = Fuel.Consumption)) + geom_bar(stat = 'identity', aes(fill = Borough))
+  
+    theme_set(theme_gray(base_size = 16))
+    ggplot(time, aes(x= Retirement, y = Fuel.Consumption)) + geom_bar(stat = 'identity', aes(fill = Borough)) +
+      labs(x = "Year", y = "Avg MMBTU / Year") +
+      ggtitle("Fuel Needs", subtitle = "of boilers scheduled for replacement") +
+      theme(panel.background = element_blank())
   })
   
 })#END Shiny server
