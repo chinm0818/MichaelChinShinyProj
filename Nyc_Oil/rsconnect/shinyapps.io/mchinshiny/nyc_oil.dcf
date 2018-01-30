@@ -1,0 +1,10 @@
+name: nyc_oil
+title:
+username:
+account: mchinshiny
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 266854
+bundleId: 1200023
+url: https://mchinshiny.shinyapps.io/nyc_oil/
+when: 1517352812.67339
